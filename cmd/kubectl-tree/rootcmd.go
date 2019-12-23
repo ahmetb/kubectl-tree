@@ -28,12 +28,13 @@ var cf *genericclioptions.ConfigFlags
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "kubectl tree",
-	Short:   "Show sub-resources of the Kubernetes object",
+	Use:          "kubectl tree",
+	SilenceUsage: true, // for when RunE returns an error
+	Short:        "Show sub-resources of the Kubernetes object",
 	Example: "  kubectl tree deployment my-app\n" +
 		"  kubectl tree kservice.v1.serving.knative.dev my-app", // TODO add more examples about disambiguation etc
-	Args:    cobra.MinimumNArgs(2),
-	RunE:    run,
+	Args: cobra.MinimumNArgs(2),
+	RunE: run,
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -69,9 +70,13 @@ func run(cmd *cobra.Command, args []string) error {
 			strings.Join(names, ", "))
 	}
 
-	obj, err := dyn.Resource(apiRes[0].GroupVersionResource()).Namespace(*cf.Namespace).Get(name, metav1.GetOptions{})
+	ns  := *cf.Namespace
+	if ns ==  ""{
+		ns = "default" // TODO(ahmetb): how to get current-namespace from kubeconfig?
+	}
+	obj, err := dyn.Resource(apiRes[0].GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get: %w", err)
+		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
 	}
 
 	apiObjects, err := getAllResources(dyn, apis.resources())

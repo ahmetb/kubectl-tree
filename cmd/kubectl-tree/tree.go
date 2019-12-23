@@ -48,7 +48,7 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 
 	tbl.AddRow(obj.GetNamespace(), fmt.Sprintf("%s%s/%s",
 		gray.Sprint(printPrefix(prefix)),
-		gray.Sprint(obj.GetKind()),
+		obj.GetKind(),
 		color.New(color.Bold).Sprint(obj.GetName())),
 		readyColor.Sprint(ready),
 		readyColor.Sprint(reason))
@@ -66,6 +66,7 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 }
 
 func printPrefix(p string) string {
+	// this part is hacky af
 	if strings.HasSuffix(p, firstElemPrefix) {
 		p = strings.Replace(p, firstElemPrefix, pipe, strings.Count(p, firstElemPrefix)-1)
 	} else {
