@@ -7,13 +7,15 @@ require (
 	github.com/cppforlife/go-cli-ui v0.0.0-20181113222104-5a69326440e8 // indirect
 	github.com/emicklei/go-restful v2.9.6+incompatible // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
-	github.com/fatih/color v1.7.0 // indirect
+	github.com/fatih/color v1.7.0
 	github.com/googleapis/gnostic v0.3.0 // indirect
+	github.com/gosuri/uitable v0.0.4
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/k14s/kapp v0.16.0 // indirect
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
+	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/vito/go-interact v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect

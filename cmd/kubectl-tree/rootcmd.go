@@ -30,7 +30,8 @@ var cf *genericclioptions.ConfigFlags
 var rootCmd = &cobra.Command{
 	Use:     "kubectl tree",
 	Short:   "Show sub-resources of the Kubernetes object",
-	Example: "  kubectl tree deployment my-app", // TODO add more examples about disambiguation etc
+	Example: "  kubectl tree deployment my-app\n" +
+		"  kubectl tree kservice.v1.serving.knative.dev my-app", // TODO add more examples about disambiguation etc
 	Args:    cobra.MinimumNArgs(2),
 	RunE:    run,
 }
@@ -68,21 +69,15 @@ func run(cmd *cobra.Command, args []string) error {
 			strings.Join(names, ", "))
 	}
 
-	fmt.Printf("kind=%#v name=%s\n", apiRes[0], name)
-	if *cf.Namespace == "" {
-		*cf.Namespace = "default" // TODO(ahmetb) figure out how to have this auto-set by kubeconfig w/ cli override
-	}
-
 	obj, err := dyn.Resource(apiRes[0].GroupVersionResource()).Namespace(*cf.Namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get: %w", err)
 	}
 
-	apiObjects, err := QueryResources(dyn, apis.resources())
+	apiObjects, err := getAllResources(dyn, apis.resources())
 	if err != nil {
 		return fmt.Errorf("error while querying api objects: %w", err)
 	}
-	fmt.Printf("%d api objects found\n", len(apiObjects))
 
 	objs := newObjectDirectory(apiObjects)
 	if len(objs.ownership[obj.GetUID()]) == 0 {

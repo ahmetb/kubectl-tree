@@ -8,7 +8,8 @@ import (
 	"sync"
 )
 
-func QueryResources(client dynamic.Interface, apis []apiResource) ([]unstructured.Unstructured, error) {
+// getAllResources finds all API objects in specified API resources in all namespaces (or non-namespaced).
+func getAllResources(client dynamic.Interface, apis []apiResource) ([]unstructured.Unstructured, error) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var out []unstructured.Unstructured
@@ -46,7 +47,6 @@ func queryAPI(client dynamic.Interface, api apiResource) ([]unstructured.Unstruc
 		}
 		out = append(out, resp.Items...)
 
-		fmt.Printf("found %d objects in %s (next=%s)\n", len(resp.Items), api.GroupVersionResource(), resp.GetContinue())
 		next = resp.GetContinue()
 		if next == "" {
 			break
