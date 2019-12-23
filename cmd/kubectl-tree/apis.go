@@ -94,8 +94,8 @@ func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 	names := append([]string{singularName, pluralName}, shortNames...)
 	for _, n := range names {
 		fmtBare := n                                                            // e.g. deployment
-		fmtWithGroup := fmt.Sprintf("%s.%s", n, gv.Group)                       // e.g. deployment.apps
-		fmtWithGroupVersion := fmt.Sprintf("%s.%s.%s", n, gv.Version, gv.Group) // e.g. deployment.v1.apps
+		fmtWithGroup := strings.Join([]string{n, gv.Group},".")                       // e.g. deployment.apps
+		fmtWithGroupVersion := strings.Join([]string{n, gv.Version, gv.Group},".") // e.g. deployment.v1.apps
 
 		out = append(out,
 			fmtBare, fmtWithGroup, fmtWithGroupVersion)

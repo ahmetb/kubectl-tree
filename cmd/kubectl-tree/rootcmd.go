@@ -86,7 +86,8 @@ func run(cmd *cobra.Command, args []string) error {
 
 	objs := newObjectDirectory(apiObjects)
 	if len(objs.ownership[obj.GetUID()]) == 0 {
-		return fmt.Errorf("no resources are owned by the specified object")
+		fmt.Println("No resources are owned by the specified object through ownerReferences.")
+		return nil
 	}
 	treeView(os.Stderr, objs, *obj)
 	return nil

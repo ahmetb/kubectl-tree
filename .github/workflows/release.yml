@@ -1,0 +1,19 @@
+name: release
+on:
+  tags:
+  - 'v*.*.*'
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+    - name: Setup Go
+      uses: actions/setup-go@v1
+    - name: GoReleaser
+      uses: goreleaser/goreleaser-action@v1
+      with:
+        version: latest
+        args: release --rm-dist
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
