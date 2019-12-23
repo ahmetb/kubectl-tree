@@ -1,7 +1,8 @@
 name: release
 on:
-  tags:
-  - 'v*.*.*'
+  push:
+    tags:
+    - 'v*.*.*'
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
