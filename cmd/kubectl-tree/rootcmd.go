@@ -28,7 +28,7 @@ var cf *genericclioptions.ConfigFlags
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:          "kubectl tree",
+	Use:          "kubectl tree KIND NAME",
 	SilenceUsage: true, // for when RunE returns an error
 	Short:        "Show sub-resources of the Kubernetes object",
 	Example: "  kubectl tree deployment my-app\n" +
@@ -66,7 +66,7 @@ func run(cmd *cobra.Command, args []string) error {
 		for _, a := range apiRes {
 			names = append(names, fullAPIName(a))
 		}
-		return fmt.Errorf("ambiguous kind %q. use one of these to disambiguate: [%s]", kind,
+		return fmt.Errorf("ambiguous kind %q. use one of these as the KIND disambiguate: [%s]", kind,
 			strings.Join(names, ", "))
 	}
 

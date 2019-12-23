@@ -25,6 +25,7 @@ var (
 // treeView prints object hierarchy to out stream.
 func treeView(out io.Writer, objs objectDirectory, obj unstructured.Unstructured) {
 	tbl := uitable.New()
+	tbl.Separator = "  "
 	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON")
 	treeViewInner("", tbl, objs, obj)
 	fmt.Fprintln(out, tbl)

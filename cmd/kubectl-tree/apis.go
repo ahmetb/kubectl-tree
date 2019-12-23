@@ -85,6 +85,10 @@ func contains(v []string, s string) bool {
 func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 	var out []string
 	singularName := a.SingularName
+	if singularName == "" {
+		// TODO(ahmetb): sometimes SingularName is empty (e.g. Deployment), use lowercase Kind as fallback - investigate why
+		singularName = strings.ToLower(a.Kind)
+	}
 	pluralName := a.Name
 	shortNames := a.ShortNames
 	names := append([]string{singularName, pluralName}, shortNames...)
