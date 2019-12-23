@@ -8,24 +8,46 @@ import (
 	"strings"
 )
 
-type resourceMap map[string][]schema.GroupVersionResource // names to apis binding
-
-func (rm resourceMap) lookup(s string) []schema.GroupVersionResource {
-	return rm[strings.ToLower(s)]
+type apiResource struct {
+	r  metav1.APIResource
+	gv schema.GroupVersion
 }
 
-func fullAPIName(a schema.GroupVersionResource) string {
-	return strings.Join([]string{a.Resource, a.Version, a.Group}, ".")
+func (a apiResource) GroupVersionResource() schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    a.gv.Group,
+		Version:  a.gv.Version,
+		Resource: a.r.Name,
+	}
 }
 
-func buildAPILookup(client discovery.DiscoveryInterface) (resourceMap, error) {
+type resourceNameLookup map[string][]apiResource
+
+type resourceMap struct {
+	list []apiResource
+	m    resourceNameLookup
+} // names to apis binding
+
+func (rm *resourceMap) lookup(s string) []apiResource {
+	return rm.m[strings.ToLower(s)]
+}
+
+func (rm *resourceMap) resources() []apiResource { return rm.list }
+
+func fullAPIName(a apiResource) string {
+	sgv := a.GroupVersionResource()
+	return strings.Join([]string{sgv.Resource, sgv.Version, sgv.Group}, ".")
+}
+
+func buildAPILookup(client discovery.DiscoveryInterface) (*resourceMap, error) {
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch api groups from kubernetes: %w", err)
 	}
 
-	nameMap := make(resourceMap)
-
+	rm := &resourceMap{
+		m: make(resourceNameLookup),
+	}
 	for _, group := range resList {
 		gv, err := schema.ParseGroupVersion(group.GroupVersion)
 		if err != nil {
@@ -33,20 +55,30 @@ func buildAPILookup(client discovery.DiscoveryInterface) (resourceMap, error) {
 		}
 
 		for _, apiRes := range group.APIResources {
-			if len(apiRes.Verbs) == 0 {
+			if !contains(apiRes.Verbs, "list") {
 				continue
 			}
 
-			for _, name := range apiNames(apiRes, gv) {
-				nameMap[name] = append(nameMap[name], schema.GroupVersionResource{
-					Group:    gv.Group,
-					Version:  gv.Version,
-					Resource: apiRes.Name,
-				})
+			v := apiResource{
+				gv: gv,
+				r:  apiRes,
 			}
+			for _, name := range apiNames(apiRes, gv) {
+				rm.m[name] = append(rm.m[name], v)
+			}
+			rm.list = append(rm.list, v)
 		}
 	}
-	return nameMap, nil
+	return rm, nil
+}
+
+func contains(v []string, s string) bool {
+	for _, vv := range v {
+		if vv == s {
+			return true
+		}
+	}
+	return false
 }
 
 // return all names that could refer to this APIResource

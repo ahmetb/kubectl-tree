@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
 	"strings"
 )
 
@@ -39,6 +40,8 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	restConfig.QPS = 1000
+	restConfig.Burst = 1000
 	dyn, err := dynamicClient(restConfig)
 	if err != nil {
 		return err
@@ -65,13 +68,26 @@ func run(cmd *cobra.Command, args []string) error {
 			strings.Join(names, ", "))
 	}
 
-	//namespace := "default" // TODO figure out how to use genericclioptions to read kubeconfig + cli opt
 	fmt.Printf("kind=%#v name=%s\n", apiRes[0], name)
-	result, err := dyn.Resource(apiRes[0]).Get(name, metav1.GetOptions{})
+	if *cf.Namespace == "" {
+		*cf.Namespace = "default" // TODO(ahmetb) figure out how to have this auto-set by kubeconfig w/ cli override
+	}
+
+	obj, err := dyn.Resource(apiRes[0].GroupVersionResource()).Namespace(*cf.Namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get: %w", err)
 	}
 
-	fmt.Printf("%#v", result)
+	apiObjects, err := QueryResources(dyn, apis.resources())
+	if err != nil {
+		return fmt.Errorf("error while querying api objects: %w", err)
+	}
+	fmt.Printf("%d api objects found\n", len(apiObjects))
+
+	objs := newObjectDirectory(apiObjects)
+	if len(objs.ownership[obj.GetUID()]) == 0 {
+		return fmt.Errorf("no resources are owned by the specified object")
+	}
+	treeView(os.Stderr, objs, *obj)
 	return nil
 }
