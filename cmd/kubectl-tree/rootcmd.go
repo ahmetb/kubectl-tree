@@ -70,8 +70,8 @@ func run(cmd *cobra.Command, args []string) error {
 			strings.Join(names, ", "))
 	}
 
-	ns  := *cf.Namespace
-	if ns ==  ""{
+	ns := *cf.Namespace
+	if ns == "" {
 		ns = "default" // TODO(ahmetb): how to get current-namespace from kubeconfig?
 	}
 	obj, err := dyn.Resource(apiRes[0].GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})

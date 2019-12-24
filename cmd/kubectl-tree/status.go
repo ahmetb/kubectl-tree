@@ -27,7 +27,7 @@ func extractStatus(obj unstructured.Unstructured) (ReadyStatus, Reason) {
 
 	for _, cond := range conditionsV {
 		condM, ok := cond.(map[string]interface{})
-		if !ok  {
+		if !ok {
 			return "", ""
 		}
 		condType, ok := condM["type"].(string)
