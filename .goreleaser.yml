@@ -1,3 +1,5 @@
+before:
+- go mod download
 builds:
 - id: kubectl-tree
   main: ./cmd/kubectl-tree
