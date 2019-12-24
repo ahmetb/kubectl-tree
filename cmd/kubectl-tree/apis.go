@@ -5,7 +5,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
+	"k8s.io/klog"
 	"strings"
+	"time"
 )
 
 type apiResource struct {
@@ -39,23 +41,29 @@ func fullAPIName(a apiResource) string {
 	return strings.Join([]string{sgv.Resource, sgv.Version, sgv.Group}, ".")
 }
 
-func buildAPILookup(client discovery.DiscoveryInterface) (*resourceMap, error) {
+func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
+	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch api groups from kubernetes: %w", err)
 	}
+	klog.V(2).Infof("queried api discovery in %v", time.Since(start))
+	klog.V(3).Infof("found %d items (groups) in server-preferred APIResourceList", len(resList))
 
 	rm := &resourceMap{
 		m: make(resourceNameLookup),
 	}
 	for _, group := range resList {
+		klog.V(5).Infof("iterating over group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
 		gv, err := schema.ParseGroupVersion(group.GroupVersion)
 		if err != nil {
 			return nil, fmt.Errorf("%q cannot be parsed into groupversion: %w", group.GroupVersion, err)
 		}
 
 		for _, apiRes := range group.APIResources {
+			klog.V(5).Infof("  api=%s namespaced=%v", apiRes.Name, apiRes.Namespaced)
 			if !contains(apiRes.Verbs, "list") {
+				klog.V(4).Infof("    api (%s) doesn't have required verb, skipping: %v", apiRes.Name, apiRes.Verbs)
 				continue
 			}
 
@@ -63,7 +71,9 @@ func buildAPILookup(client discovery.DiscoveryInterface) (*resourceMap, error) {
 				gv: gv,
 				r:  apiRes,
 			}
-			for _, name := range apiNames(apiRes, gv) {
+			names := apiNames(apiRes, gv)
+			klog.V(6).Infof("names: %s", strings.Join(names, ", "))
+			for _, name := range names {
 				rm.m[name] = append(rm.m[name], v)
 			}
 			rm.list = append(rm.list, v)

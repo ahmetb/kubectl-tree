@@ -1,13 +1,17 @@
 package main
 
 import (
+	"encoding/json"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog"
 )
 
 type ReadyStatus string // True False Unknown or ""
 type Reason string
 
 func extractStatus(obj unstructured.Unstructured) (ReadyStatus, Reason) {
+	jsonVal, _ := json.Marshal(obj.Object["status"])
+	klog.V(6).Infof("status for object=%s/%s: %s", obj.GetKind(), obj.GetName(), string(jsonVal))
 	statusF, ok := obj.Object["status"]
 	if !ok {
 		return "", ""

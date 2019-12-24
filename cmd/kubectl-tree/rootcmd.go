@@ -16,11 +16,14 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/klog"
 	"os"
 	"strings"
 
@@ -55,13 +58,17 @@ func run(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	apis, err := buildAPILookup(dc)
+
+	apis, err := findAPIs(dc)
 	if err != nil {
 		return err
 	}
+	klog.V(3).Info("completed querying APIs list")
 
 	kind, name := args[0], args[1]
+	klog.V(3).Infof("parsed kind=%v name=%v", kind, name)
 	apiRes := apis.lookup(kind)
+	klog.V(5).Infof("kind matches=%v", apiRes)
 	if len(apiRes) == 0 {
 		return fmt.Errorf("could not find api kind %q", kind)
 	} else if len(apiRes) > 1 {
@@ -82,10 +89,14 @@ func run(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
 	}
 
+	klog.V(5).Infof("target parent object: %#v", obj)
+
+	klog.V(2).Infof("querying all api objects")
 	apiObjects, err := getAllResources(dyn, apis.resources())
 	if err != nil {
 		return fmt.Errorf("error while querying api objects: %w", err)
 	}
+	klog.V(2).Infof("found total %d api objects", len(apiObjects))
 
 	objs := newObjectDirectory(apiObjects)
 	if len(objs.ownership[obj.GetUID()]) == 0 {
@@ -93,14 +104,32 @@ func run(_ *cobra.Command, args []string) error {
 		return nil
 	}
 	treeView(os.Stderr, objs, *obj)
+	klog.V(2).Infof("done printing tree view")
 	return nil
 }
 
-func main() {
+func init() {
+	klog.InitFlags(nil)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+
+	// hide all glog flags except for -v
+	flag.CommandLine.VisitAll(func(f *flag.Flag) {
+		if f.Name != "v" {
+			pflag.Lookup(f.Name).Hidden = true
+		}
+	})
+
 	cf = genericclioptions.NewConfigFlags(true)
 	cf.AddFlags(rootCmd.Flags())
-	if err := rootCmd.Execute(); err != nil {
+	if err := flag.Set("logtostderr", "true"); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to set logtostderr flag: %v\n", err)
 		os.Exit(1)
 	}
 }
 
+func main() {
+	defer klog.Flush()
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
