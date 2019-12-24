@@ -20,8 +20,11 @@ import (
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/dynamic"
 	"os"
 	"strings"
+
+	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
 )
 
 var cf *genericclioptions.ConfigFlags
@@ -37,16 +40,16 @@ var rootCmd = &cobra.Command{
 	RunE: run,
 }
 
-func run(cmd *cobra.Command, args []string) error {
+func run(_ *cobra.Command, args []string) error {
 	restConfig, err := cf.ToRESTConfig()
 	if err != nil {
 		return err
 	}
 	restConfig.QPS = 1000
 	restConfig.Burst = 1000
-	dyn, err := dynamicClient(restConfig)
+	dyn, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to construct dynamic client: %w", err)
 	}
 	dc, err := cf.ToDiscoveryClient()
 	if err != nil {
@@ -92,3 +95,12 @@ func run(cmd *cobra.Command, args []string) error {
 	treeView(os.Stderr, objs, *obj)
 	return nil
 }
+
+func main() {
+	cf = genericclioptions.NewConfigFlags(true)
+	cf.AddFlags(rootCmd.Flags())
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
+
