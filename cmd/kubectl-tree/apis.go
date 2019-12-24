@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"strings"
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog"
-	"strings"
-	"time"
 )
 
 type apiResource struct {

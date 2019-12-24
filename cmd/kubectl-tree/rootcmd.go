@@ -18,16 +18,16 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/klog"
-	"os"
-	"strings"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
+	"k8s.io/klog"
 )
 
 var cf *genericclioptions.ConfigFlags

@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/fatih/color"
 	"github.com/gosuri/uitable"
-	"io"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"strings"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 const (
@@ -26,7 +29,7 @@ var (
 func treeView(out io.Writer, objs objectDirectory, obj unstructured.Unstructured) {
 	tbl := uitable.New()
 	tbl.Separator = "  "
-	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON")
+	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON", "AGE")
 	treeViewInner("", tbl, objs, obj)
 	fmt.Fprintln(out, tbl)
 }
@@ -47,12 +50,19 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 		ready = "-"
 	}
 
+	c := obj.GetCreationTimestamp()
+	age := duration.HumanDuration(time.Since(c.Time))
+	if c.IsZero() {
+		age = "<unknown>"
+	}
+
 	tbl.AddRow(obj.GetNamespace(), fmt.Sprintf("%s%s/%s",
 		gray.Sprint(printPrefix(prefix)),
 		obj.GetKind(),
 		color.New(color.Bold).Sprint(obj.GetName())),
 		readyColor.Sprint(ready),
-		readyColor.Sprint(reason))
+		readyColor.Sprint(reason),
+		age)
 	chs := objs.ownedBy(obj.GetUID())
 	for i, child := range chs {
 		var p string
