@@ -13,6 +13,7 @@ builds:
 archives:
 - builds:
   - kubectl-tree
+  name_template: "{{ .ProjectName }}_{{ .Tag }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
   wrap_in_directory: false
   format: tar.gz
   files:
