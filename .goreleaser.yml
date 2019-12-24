@@ -1,0 +1,19 @@
+builds:
+- id: kubectl-tree
+  main: ./cmd/kubectl-tree
+  binary: kubectl-tree
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - darwin
+  - linux
+  goarch:
+  - amd64
+
+archives:
+- builds:
+  - kubectl-tree
+  wrap_in_directory: false
+  format: tar.gz
+  files:
+  - LICENSE
