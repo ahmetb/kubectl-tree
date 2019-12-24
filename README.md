@@ -5,8 +5,6 @@ through ownersReferences on them.
 
 ## Installation
 
-> **NOTE:** This is still not working as I'm packaging it for Krew.
-
 Use [krew](https://sigs.k8s.io/krew) plugin manager to install
 
     kubectl krew install tree
