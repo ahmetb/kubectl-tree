@@ -67,24 +67,32 @@ func run(_ *cobra.Command, args []string) error {
 
 	kind, name := args[0], args[1]
 	klog.V(3).Infof("parsed kind=%v name=%v", kind, name)
-	apiRes := apis.lookup(kind)
-	klog.V(5).Infof("kind matches=%v", apiRes)
-	if len(apiRes) == 0 {
-		return fmt.Errorf("could not find api kind %q", kind)
-	} else if len(apiRes) > 1 {
-		names := make([]string, 0, len(apiRes))
-		for _, a := range apiRes {
-			names = append(names, fullAPIName(a))
+
+	var api apiResource
+	if k, ok := overrideType(kind, apis); ok {
+		klog.V(2).Infof("kind=%s override found: %s", k.GroupVersionResource())
+		api = k
+	} else {
+		apiResults := apis.lookup(kind)
+		klog.V(5).Infof("kind matches=%v", apiResults)
+		if len(apiResults) == 0 {
+			return fmt.Errorf("could not find api kind %q", kind)
+		} else if len(apiResults) > 1 {
+			names := make([]string, 0, len(apiResults))
+			for _, a := range apiResults {
+				names = append(names, fullAPIName(a))
+			}
+			return fmt.Errorf("ambiguous kind %q. use one of these as the KIND disambiguate: [%s]", kind,
+				strings.Join(names, ", "))
 		}
-		return fmt.Errorf("ambiguous kind %q. use one of these as the KIND disambiguate: [%s]", kind,
-			strings.Join(names, ", "))
+		api = apiResults[0]
 	}
 
 	ns := *cf.Namespace
 	if ns == "" {
 		ns = "default" // TODO(ahmetb): how to get current-namespace from kubeconfig?
 	}
-	obj, err := dyn.Resource(apiRes[0].GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
+	obj, err := dyn.Resource(api.GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
 	}
@@ -100,7 +108,7 @@ func run(_ *cobra.Command, args []string) error {
 
 	objs := newObjectDirectory(apiObjects)
 	if len(objs.ownership[obj.GetUID()]) == 0 {
-		fmt.Println("No resources are owned by the specified object through ownerReferences.")
+		fmt.Println("No resources are owned by this object through ownerReferences.")
 		return nil
 	}
 	treeView(os.Stderr, objs, *obj)

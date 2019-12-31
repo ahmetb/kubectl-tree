@@ -29,7 +29,7 @@ type resourceNameLookup map[string][]apiResource
 type resourceMap struct {
 	list []apiResource
 	m    resourceNameLookup
-} // names to apis binding
+}
 
 func (rm *resourceMap) lookup(s string) []apiResource {
 	return rm.m[strings.ToLower(s)]
