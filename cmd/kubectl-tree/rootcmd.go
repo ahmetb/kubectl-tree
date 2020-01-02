@@ -70,7 +70,7 @@ func run(_ *cobra.Command, args []string) error {
 
 	var api apiResource
 	if k, ok := overrideType(kind, apis); ok {
-		klog.V(2).Infof("kind=%s override found: %s", k.GroupVersionResource())
+		klog.V(2).Infof("kind=%s override found: %s", kind, k.GroupVersionResource())
 		api = k
 	} else {
 		apiResults := apis.lookup(kind)
