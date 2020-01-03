@@ -33,3 +33,12 @@ spec:
     - from: "*"
       to: "."
     bin: kubectl-tree
+  - selector:
+      matchLabels:
+        os: windows
+        arch: amd64
+    {{addURIAndSha "https://github.com/ahmetb/kubectl-tree/releases/download/{{ .TagName }}/kubectl-tree_{{ .TagName }}_windows_amd64.tar.gz" .TagName }}
+    files:
+    - from: "*"
+      to: "."
+    bin: kubectl-tree.exe

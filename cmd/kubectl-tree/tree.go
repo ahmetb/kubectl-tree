@@ -31,7 +31,7 @@ func treeView(out io.Writer, objs objectDirectory, obj unstructured.Unstructured
 	tbl.Separator = "  "
 	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON", "AGE")
 	treeViewInner("", tbl, objs, obj)
-	fmt.Fprintln(out, tbl)
+	fmt.Fprintln(color.Output, tbl)
 }
 
 func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj unstructured.Unstructured) {
