@@ -90,8 +90,14 @@ func run(_ *cobra.Command, args []string) error {
 
 	ns := *cf.Namespace
 	if ns == "" {
-		ns = "default" // TODO(ahmetb): how to get current-namespace from kubeconfig?
+		clientConfig := cf.ToRawKubeConfigLoader()
+		defaultNamespace, _, err := clientConfig.Namespace()
+		if err != nil {
+			defaultNamespace = "default"
+		}
+		ns = defaultNamespace
 	}
+
 	obj, err := dyn.Resource(api.GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
