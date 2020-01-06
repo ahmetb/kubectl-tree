@@ -18,7 +18,11 @@ Example (Deployment):
 
 Example (Knative Service):
 
-![example Kubernetes deployment object hierarchy](assets/example-2.png)
+![example Kubernetes object hierarchy with Knative Service](assets/example-2.png)
+
+Example (Agones Fleet):
+
+![example Kubernetes object hierarchy with Agones Fleet](assets/example-3.png)
 
 ## Author
 
