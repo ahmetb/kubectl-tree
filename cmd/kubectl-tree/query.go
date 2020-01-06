@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,7 +57,12 @@ func queryAPI(client dynamic.Interface, api apiResource) ([]unstructured.Unstruc
 			Continue: next,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("listing resources failed (%s): %w", api.GroupVersionResource(), err)
+			if strings.Contains(err.Error(), "forbidden") {
+				klog.V(2).Infof("listing resources failed (%s) due to forbidden access, skipping...: %w", api.GroupVersionResource(), err)
+				continue
+			} else {
+				return nil, fmt.Errorf("listing resources failed (%s): %w", api.GroupVersionResource(), err)
+			}
 		}
 		out = append(out, resp.Items...)
 
