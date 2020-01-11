@@ -51,7 +51,14 @@ func queryAPI(client dynamic.Interface, api apiResource) ([]unstructured.Unstruc
 
 	var next string
 	for {
-		resp, err := client.Resource(api.GroupVersionResource()).List(metav1.ListOptions{
+		var intf dynamic.ResourceInterface
+		nintf := client.Resource(api.GroupVersionResource())
+		if !*allNamespaces {
+			intf = nintf.Namespace(getNamespace())
+		} else {
+			intf = nintf
+		}
+		resp, err := intf.List(metav1.ListOptions{
 			Limit:    250,
 			Continue: next,
 		})

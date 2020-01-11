@@ -67,7 +67,9 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 				klog.V(4).Infof("    api (%s) doesn't have required verb, skipping: %v", apiRes.Name, apiRes.Verbs)
 				continue
 			}
-
+			if !*allNamespaces && !apiRes.Namespaced {
+				continue
+			}
 			v := apiResource{
 				gv: gv,
 				r:  apiRes,
@@ -80,6 +82,7 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 			rm.list = append(rm.list, v)
 		}
 	}
+	klog.V(5).Infof("  found %d apis", len(rm.m))
 	return rm, nil
 }
 

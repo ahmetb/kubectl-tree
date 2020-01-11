@@ -32,6 +32,8 @@ import (
 
 var cf *genericclioptions.ConfigFlags
 
+var allNamespaces *bool
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:          "kubectl tree KIND NAME",
@@ -88,15 +90,7 @@ func run(_ *cobra.Command, args []string) error {
 		api = apiResults[0]
 	}
 
-	ns := *cf.Namespace
-	if ns == "" {
-		clientConfig := cf.ToRawKubeConfigLoader()
-		defaultNamespace, _, err := clientConfig.Namespace()
-		if err != nil {
-			defaultNamespace = "default"
-		}
-		ns = defaultNamespace
-	}
+	ns := getNamespace()
 
 	obj, err := dyn.Resource(api.GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -134,6 +128,9 @@ func init() {
 	})
 
 	cf = genericclioptions.NewConfigFlags(true)
+
+	allNamespaces = rootCmd.Flags().BoolP("all-namespaces", "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
+
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to set logtostderr flag: %v\n", err)
