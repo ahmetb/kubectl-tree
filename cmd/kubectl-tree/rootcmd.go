@@ -44,7 +44,17 @@ var rootCmd = &cobra.Command{
 		"  kubectl tree kservice.v1.serving.knative.dev my-app", // TODO add more examples about disambiguation etc
 	Args:    cobra.MinimumNArgs(2),
 	RunE:    run,
-	Version: version,
+	Version: versionString(),
+}
+
+// versionString returns the version prefixed by 'v'
+// or an empty string if no version has been populated by goreleaser.
+// In this case, the --version flag will not be added by cobra.
+func versionString() string {
+	if len(version) == 0 {
+		return ""
+	}
+	return "v" + version
 }
 
 func run(_ *cobra.Command, args []string) error {
