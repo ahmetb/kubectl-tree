@@ -42,7 +42,7 @@ func fullAPIName(a apiResource) string {
 	return strings.Join([]string{sgv.Resource, sgv.Version, sgv.Group}, ".")
 }
 
-func findAPIs(client discovery.DiscoveryInterface, allNs bool) (*resourceMap, error) {
+func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {

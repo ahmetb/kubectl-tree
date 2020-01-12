@@ -69,7 +69,7 @@ func run(command *cobra.Command, args []string) error {
 		return err
 	}
 
-	apis, err := findAPIs(dc, allNs)
+	apis, err := findAPIs(dc)
 	if err != nil {
 		return err
 	}
