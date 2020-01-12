@@ -22,6 +22,10 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 
 	var errResult error
 	for _, api := range apis {
+		if !allNs && !api.r.Namespaced {
+			klog.V(4).Infof("[query api] api (%s) is non-namespaced, skipping", api.r.Name)
+			continue
+		}
 		wg.Add(1)
 		go func(a apiResource) {
 			defer wg.Done()

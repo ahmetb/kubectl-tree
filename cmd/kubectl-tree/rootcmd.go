@@ -99,6 +99,7 @@ func run(command *cobra.Command, args []string) error {
 	}
 
 	ns := getNamespace()
+	klog.V(2).Infof("namespace=%s allNamespaces=%v", ns, allNs)
 
 	obj, err := dyn.Resource(api.GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
 	if err != nil {

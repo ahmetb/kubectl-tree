@@ -67,10 +67,6 @@ func findAPIs(client discovery.DiscoveryInterface, allNs bool) (*resourceMap, er
 				klog.V(4).Infof("    api (%s) doesn't have required verb, skipping: %v", apiRes.Name, apiRes.Verbs)
 				continue
 			}
-			if !allNs && !apiRes.Namespaced {
-				klog.V(4).Infof("    api (%s) is non-namespaced, skipping", apiRes.Name)
-				continue
-			}
 			v := apiResource{
 				gv: gv,
 				r:  apiRes,
