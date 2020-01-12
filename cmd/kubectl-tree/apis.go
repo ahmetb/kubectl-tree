@@ -42,7 +42,7 @@ func fullAPIName(a apiResource) string {
 	return strings.Join([]string{sgv.Resource, sgv.Version, sgv.Group}, ".")
 }
 
-func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
+func findAPIs(client discovery.DiscoveryInterface, allNs bool) (*resourceMap, error) {
 	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
@@ -67,7 +67,8 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 				klog.V(4).Infof("    api (%s) doesn't have required verb, skipping: %v", apiRes.Name, apiRes.Verbs)
 				continue
 			}
-			if !*allNamespaces && !apiRes.Namespaced {
+			if !allNs && !apiRes.Namespaced {
+				klog.V(4).Infof("    api (%s) is non-namespaced, skipping", apiRes.Name)
 				continue
 			}
 			v := apiResource{

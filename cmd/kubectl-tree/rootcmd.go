@@ -30,9 +30,11 @@ import (
 	"k8s.io/klog"
 )
 
-var cf *genericclioptions.ConfigFlags
+const (
+	allNamespacesFlag = "all-namespaces"
+)
 
-var allNamespaces *bool
+var cf *genericclioptions.ConfigFlags
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -45,7 +47,13 @@ var rootCmd = &cobra.Command{
 	RunE: run,
 }
 
-func run(_ *cobra.Command, args []string) error {
+func run(command *cobra.Command, args []string) error {
+
+	allNs, err := command.Flags().GetBool(allNamespacesFlag)
+	if err != nil {
+		allNs = false
+	}
+
 	restConfig, err := cf.ToRESTConfig()
 	if err != nil {
 		return err
@@ -61,7 +69,7 @@ func run(_ *cobra.Command, args []string) error {
 		return err
 	}
 
-	apis, err := findAPIs(dc)
+	apis, err := findAPIs(dc, allNs)
 	if err != nil {
 		return err
 	}
@@ -100,7 +108,7 @@ func run(_ *cobra.Command, args []string) error {
 	klog.V(5).Infof("target parent object: %#v", obj)
 
 	klog.V(2).Infof("querying all api objects")
-	apiObjects, err := getAllResources(dyn, apis.resources())
+	apiObjects, err := getAllResources(dyn, apis.resources(), allNs)
 	if err != nil {
 		return fmt.Errorf("error while querying api objects: %w", err)
 	}
@@ -129,7 +137,7 @@ func init() {
 
 	cf = genericclioptions.NewConfigFlags(true)
 
-	allNamespaces = rootCmd.Flags().BoolP("all-namespaces", "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
+	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {

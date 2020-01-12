@@ -1,11 +1,6 @@
 package main
 
-var namespace *string
-
 func getNamespace() string {
-	if namespace != nil {
-		return *namespace
-	}
 	ns := *cf.Namespace
 	if ns == "" {
 		clientConfig := cf.ToRawKubeConfigLoader()
@@ -15,6 +10,5 @@ func getNamespace() string {
 		}
 		ns = defaultNamespace
 	}
-	namespace = &ns
 	return ns
 }
