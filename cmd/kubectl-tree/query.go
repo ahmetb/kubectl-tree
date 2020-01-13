@@ -12,7 +12,7 @@ import (
 )
 
 // getAllResources finds all API objects in specified API resources in all namespaces (or non-namespaced).
-func getAllResources(client dynamic.Interface, apis []apiResource) ([]unstructured.Unstructured, error) {
+func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) ([]unstructured.Unstructured, error) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var out []unstructured.Unstructured
@@ -22,11 +22,15 @@ func getAllResources(client dynamic.Interface, apis []apiResource) ([]unstructur
 
 	var errResult error
 	for _, api := range apis {
+		if !allNs && !api.r.Namespaced {
+			klog.V(4).Infof("[query api] api (%s) is non-namespaced, skipping", api.r.Name)
+			continue
+		}
 		wg.Add(1)
 		go func(a apiResource) {
 			defer wg.Done()
 			klog.V(4).Infof("[query api] start: %s", a.GroupVersionResource())
-			v, err := queryAPI(client, a)
+			v, err := queryAPI(client, a, allNs)
 			if err != nil {
 				klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
 				errResult = err
@@ -46,12 +50,24 @@ func getAllResources(client dynamic.Interface, apis []apiResource) ([]unstructur
 	return out, errResult
 }
 
-func queryAPI(client dynamic.Interface, api apiResource) ([]unstructured.Unstructured, error) {
+func queryAPI(client dynamic.Interface, api apiResource, allNs bool) ([]unstructured.Unstructured, error) {
 	var out []unstructured.Unstructured
 
 	var next string
+	var ns string
+
+	if !allNs {
+		ns = getNamespace()
+	}
 	for {
-		resp, err := client.Resource(api.GroupVersionResource()).List(metav1.ListOptions{
+		var intf dynamic.ResourceInterface
+		nintf := client.Resource(api.GroupVersionResource())
+		if !allNs {
+			intf = nintf.Namespace(ns)
+		} else {
+			intf = nintf
+		}
+		resp, err := intf.List(metav1.ListOptions{
 			Limit:    250,
 			Continue: next,
 		})
