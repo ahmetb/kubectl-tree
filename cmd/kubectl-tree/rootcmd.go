@@ -115,7 +115,13 @@ func run(command *cobra.Command, args []string) error {
 	ns := getNamespace()
 	klog.V(2).Infof("namespace=%s allNamespaces=%v", ns, allNs)
 
-	obj, err := dyn.Resource(api.GroupVersionResource()).Namespace(ns).Get(name, metav1.GetOptions{})
+	var ri dynamic.ResourceInterface
+	if api.r.Namespaced {
+		ri = dyn.Resource(api.GroupVersionResource()).Namespace(ns)
+	} else {
+		ri = dyn.Resource(api.GroupVersionResource())
+	}
+	obj, err := ri.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
 	}
