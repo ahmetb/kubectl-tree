@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://mdxjs.com">
+    <img alt="kubectl tree logo" src="assets/logo/logo.png" width="140" />
+  </a>
+</p>
+
 # kubectl tree 🎄
 
 A kubectl plugin to explore ownership relationships between Kubernetes objects
