@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://mdxjs.com">
-    <img alt="kubectl tree logo" src="assets/logo/logo.png" width="200" />
+    <img alt="kubectl tree logo" src="assets/logo/logo.png" width="140" />
   </a>
 </p>
 
