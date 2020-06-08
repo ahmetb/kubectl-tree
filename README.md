@@ -11,7 +11,7 @@ through ownersReferences on them.
 
 ## Installation
 
-Use [krew](https://sigs.k8s.io/krew) plugin manager to install
+Use [krew](https://krew.sigs.k8s.io/) plugin manager to install:
 
     kubectl krew install tree
     kubectl tree --help
