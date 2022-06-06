@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -67,7 +68,7 @@ func queryAPI(client dynamic.Interface, api apiResource, allNs bool) ([]unstruct
 		} else {
 			intf = nintf
 		}
-		resp, err := intf.List(metav1.ListOptions{
+		resp, err := intf.List(context.TODO(), metav1.ListOptions{
 			Limit:    250,
 			Continue: next,
 		})

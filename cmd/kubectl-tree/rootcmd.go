@@ -16,6 +16,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -121,7 +122,7 @@ func run(command *cobra.Command, args []string) error {
 	} else {
 		ri = dyn.Resource(api.GroupVersionResource())
 	}
-	obj, err := ri.Get(name, metav1.GetOptions{})
+	obj, err := ri.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
 	}
