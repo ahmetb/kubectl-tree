@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
@@ -33,7 +34,12 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 			klog.V(4).Infof("[query api] start: %s", a.GroupVersionResource())
 			v, err := queryAPI(client, a, allNs)
 			if err != nil {
-				klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
+				if errors.IsForbidden(err) {
+					klog.V(4).Infof("[query api] skipping forbidden resource: %s", a.GroupVersionResource())
+					err = nil
+				} else {
+					klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
+				}
 				errResult = err
 				return
 			}
