@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
@@ -33,8 +35,14 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 			klog.V(4).Infof("[query api] start: %s", a.GroupVersionResource())
 			v, err := queryAPI(client, a, allNs)
 			if err != nil {
-				klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
-				errResult = err
+				if errors.IsForbidden(err) {
+					// should not fail the overall process, but print an info message indicating the permission issue
+					klog.V(4).Infof("[query api] skipping forbidden resource: %s", a.GroupVersionResource())
+					klog.Infof("cannot query %s (forbidden), omitting from the tree", a.GroupVersionResource().GroupResource())
+				} else {
+					klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
+					errResult = stderrors.Join(errResult, fmt.Errorf("failed to query the %s resources: %w", a.GroupVersionResource(), err))
+				}
 				return
 			}
 			mu.Lock()
