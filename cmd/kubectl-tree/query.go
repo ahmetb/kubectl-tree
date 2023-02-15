@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"sync"
 	"time"
@@ -35,12 +36,12 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 			v, err := queryAPI(client, a, allNs)
 			if err != nil {
 				if errors.IsForbidden(err) {
+					// should not
 					klog.V(4).Infof("[query api] skipping forbidden resource: %s", a.GroupVersionResource())
-					err = nil
 				} else {
 					klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
+					errResult = stderrors.Join(errResult, fmt.Errorf("failed to query the %s resources: %w", a.GroupVersionResource(), err))
 				}
-				errResult = err
 				return
 			}
 			mu.Lock()
