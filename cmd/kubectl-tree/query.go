@@ -36,8 +36,9 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 			v, err := queryAPI(client, a, allNs)
 			if err != nil {
 				if errors.IsForbidden(err) {
-					// should not
+					// should not fail the overall process, but print an info message indicating the permission issue
 					klog.V(4).Infof("[query api] skipping forbidden resource: %s", a.GroupVersionResource())
+					klog.Infof("cannot query %s (forbidden), omitting from the tree", a.GroupVersionResource().GroupResource())
 				} else {
 					klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
 					errResult = stderrors.Join(errResult, fmt.Errorf("failed to query the %s resources: %w", a.GroupVersionResource(), err))
