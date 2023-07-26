@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,6 +28,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 )
 
@@ -73,6 +74,7 @@ func run(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	restConfig.WarningHandler = rest.NoWarnings{}
 	restConfig.QPS = 1000
 	restConfig.Burst = 1000
 	dyn, err := dynamic.NewForConfig(restConfig)
