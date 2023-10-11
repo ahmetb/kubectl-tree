@@ -22,6 +22,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +36,7 @@ import (
 
 const (
 	allNamespacesFlag = "all-namespaces"
+	colorFlag         = "color"
 )
 
 var cf *genericclioptions.ConfigFlags
@@ -64,10 +67,21 @@ func versionString() string {
 }
 
 func run(command *cobra.Command, args []string) error {
-
 	allNs, err := command.Flags().GetBool(allNamespacesFlag)
 	if err != nil {
 		allNs = false
+	}
+
+	colorArg, err := command.Flags().GetString(colorFlag)
+	if err != nil {
+		return err
+	}
+	if colorArg == "always" {
+		color.NoColor = false
+	} else if colorArg == "never" {
+		color.NoColor = true
+	} else if colorArg != "auto" {
+		return errors.Errorf("invalid value for --%s", colorFlag)
 	}
 
 	restConfig, err := cf.ToRESTConfig()
@@ -165,6 +179,7 @@ func init() {
 	cf = genericclioptions.NewConfigFlags(true)
 
 	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
+	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
