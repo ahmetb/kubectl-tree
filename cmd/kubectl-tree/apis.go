@@ -100,9 +100,16 @@ func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 		// TODO(ahmetb): sometimes SingularName is empty (e.g. Deployment), use lowercase Kind as fallback - investigate why
 		singularName = strings.ToLower(a.Kind)
 	}
+	names := []string{singularName}
+
 	pluralName := a.Name
+	if singularName != pluralName {
+		names = append(names, pluralName)
+	}
+
 	shortNames := a.ShortNames
-	names := append([]string{singularName, pluralName}, shortNames...)
+	names = append(names, shortNames...)
+
 	for _, n := range names {
 		fmtBare := n                                                                // e.g. deployment
 		fmtWithGroup := strings.Join([]string{n, gv.Group}, ".")                    // e.g. deployment.apps
