@@ -10,6 +10,7 @@ import (
 	"github.com/gosuri/uitable"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"sigs.k8s.io/cli-utils/pkg/kstatus/status"
 )
 
 const (
@@ -20,22 +21,23 @@ const (
 )
 
 var (
-	gray  = color.New(color.FgHiBlack)
-	red   = color.New(color.FgRed)
-	green = color.New(color.FgGreen)
+	gray   = color.New(color.FgHiBlack)
+	red    = color.New(color.FgRed)
+	yellow = color.New(color.FgYellow)
+	green  = color.New(color.FgGreen)
 )
 
 // treeView prints object hierarchy to out stream.
 func treeView(out io.Writer, objs objectDirectory, obj unstructured.Unstructured) {
 	tbl := uitable.New()
 	tbl.Separator = "  "
-	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON", "AGE")
+	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON", "STATUS", "AGE")
 	treeViewInner("", tbl, objs, obj)
 	fmt.Fprintln(color.Output, tbl)
 }
 
 func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj unstructured.Unstructured) {
-	ready, reason := extractStatus(obj)
+	ready, reason, kstatus := extractStatus(obj)
 
 	var readyColor *color.Color
 	switch ready {
@@ -50,6 +52,21 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 		ready = "-"
 	}
 
+	var statusColor *color.Color
+	switch kstatus {
+	case status.CurrentStatus:
+		statusColor = green
+	case status.InProgressStatus:
+		statusColor = yellow
+	case status.FailedStatus, status.TerminatingStatus:
+		statusColor = red
+	default:
+		statusColor = gray
+	}
+	if kstatus == "" {
+		kstatus = "-"
+	}
+
 	c := obj.GetCreationTimestamp()
 	age := duration.HumanDuration(time.Since(c.Time))
 	if c.IsZero() {
@@ -62,6 +79,7 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 		color.New(color.Bold).Sprint(obj.GetName())),
 		readyColor.Sprint(ready),
 		readyColor.Sprint(reason),
+		statusColor.Sprint(kstatus),
 		age)
 	chs := objs.ownedBy(obj.GetUID())
 	for i, child := range chs {
