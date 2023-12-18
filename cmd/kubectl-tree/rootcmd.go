@@ -151,7 +151,7 @@ func run(command *cobra.Command, args []string) error {
 	klog.V(2).Infof("querying all api objects")
 	apiObjects, err := getAllResources(dyn, apis.resources(), allNs)
 	if err != nil {
-		return fmt.Errorf("error while querying api objects: %w", err)
+		klog.V(2).Infof("error while querying api objects: %w", err)
 	}
 	klog.V(2).Infof("found total %d api objects", len(apiObjects))
 
