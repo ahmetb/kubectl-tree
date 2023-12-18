@@ -46,7 +46,7 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch api groups from kubernetes: %w", err)
+		klog.V(1).Infof("failed to fetch api groups from kubernetes: %v\n", err)
 	}
 	klog.V(2).Infof("queried api discovery in %v", time.Since(start))
 	klog.V(3).Infof("found %d items (groups) in server-preferred APIResourceList", len(resList))
