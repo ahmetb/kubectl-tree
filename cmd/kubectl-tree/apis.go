@@ -46,7 +46,7 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch api groups from kubernetes: %w", err)
+		klog.V(1).Infof("failed to fetch api groups from kubernetes: %v\n", err)
 	}
 	klog.V(2).Infof("queried api discovery in %v", time.Since(start))
 	klog.V(3).Infof("found %d items (groups) in server-preferred APIResourceList", len(resList))
@@ -100,9 +100,16 @@ func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 		// TODO(ahmetb): sometimes SingularName is empty (e.g. Deployment), use lowercase Kind as fallback - investigate why
 		singularName = strings.ToLower(a.Kind)
 	}
+	names := []string{singularName}
+
 	pluralName := a.Name
+	if singularName != pluralName {
+		names = append(names, pluralName)
+	}
+
 	shortNames := a.ShortNames
-	names := append([]string{singularName, pluralName}, shortNames...)
+	names = append(names, shortNames...)
+
 	for _, n := range names {
 		fmtBare := n                                                                // e.g. deployment
 		fmtWithGroup := strings.Join([]string{n, gv.Group}, ".")                    // e.g. deployment.apps
@@ -112,4 +119,21 @@ func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 			fmtBare, fmtWithGroup, fmtWithGroupVersion)
 	}
 	return out
+}
+
+func figureOutKindName(args []string) (string, string, error) {
+	if l := len(args); l == 0 || l > 2 {
+		return "", "", fmt.Errorf("accepts between 1 and 2 arg(s), received %d", l)
+	}
+	if len(args) == 2 {
+		return args[0], args[1], nil
+	}
+	seg := strings.Split(args[0], "/")
+	if len(seg) < 2 {
+		return "", "", fmt.Errorf("specify the kubernetes object in KIND NAME or KIND/NAME form")
+	}
+	if len(seg) > 2 {
+		return "", "", fmt.Errorf("arguments in KIND/NAME form may not have more than one slash")
+	}
+	return seg[0], seg[1], nil
 }

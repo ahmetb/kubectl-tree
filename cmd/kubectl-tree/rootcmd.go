@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,17 +22,21 @@ import (
 	"os"
 	"strings"
 
+	"github.com/fatih/color"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 )
 
 const (
 	allNamespacesFlag = "all-namespaces"
+	colorFlag         = "color"
 )
 
 var cf *genericclioptions.ConfigFlags
@@ -47,7 +51,7 @@ var rootCmd = &cobra.Command{
 	Short:        "Show sub-resources of the Kubernetes object",
 	Example: "  kubectl tree deployment my-app\n" +
 		"  kubectl tree kservice.v1.serving.knative.dev my-app", // TODO add more examples about disambiguation etc
-	Args:    cobra.MinimumNArgs(2),
+	Args:    cobra.RangeArgs(1, 2),
 	RunE:    run,
 	Version: versionString(),
 }
@@ -63,16 +67,28 @@ func versionString() string {
 }
 
 func run(command *cobra.Command, args []string) error {
-
 	allNs, err := command.Flags().GetBool(allNamespacesFlag)
 	if err != nil {
 		allNs = false
+	}
+
+	colorArg, err := command.Flags().GetString(colorFlag)
+	if err != nil {
+		return err
+	}
+	if colorArg == "always" {
+		color.NoColor = false
+	} else if colorArg == "never" {
+		color.NoColor = true
+	} else if colorArg != "auto" {
+		return errors.Errorf("invalid value for --%s", colorFlag)
 	}
 
 	restConfig, err := cf.ToRESTConfig()
 	if err != nil {
 		return err
 	}
+	restConfig.WarningHandler = rest.NoWarnings{}
 	restConfig.QPS = 1000
 	restConfig.Burst = 1000
 	dyn, err := dynamic.NewForConfig(restConfig)
@@ -90,7 +106,10 @@ func run(command *cobra.Command, args []string) error {
 	}
 	klog.V(3).Info("completed querying APIs list")
 
-	kind, name := args[0], args[1]
+	kind, name, err := figureOutKindName(args)
+	if err != nil {
+		return err
+	}
 	klog.V(3).Infof("parsed kind=%v name=%v", kind, name)
 
 	var api apiResource
@@ -160,6 +179,7 @@ func init() {
 	cf = genericclioptions.NewConfigFlags(true)
 
 	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
+	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
