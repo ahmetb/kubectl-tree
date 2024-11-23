@@ -13,7 +13,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v1
       with:
-        go-version: '1.23'
+        go-version-file: 'go.mod'
     - name: GoReleaser
       uses: goreleaser/goreleaser-action@v1
       with:
