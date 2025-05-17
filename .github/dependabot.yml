@@ -17,7 +17,7 @@ updates:
     prefix: chore
     include: scope
   # Update all packages under k8s scope in one group
-    groups:
-      kubernetes:
-        patterns:
-          - "k8s.io/*"
+  groups:
+    kubernetes:
+      patterns:
+        - "k8s.io/*"
