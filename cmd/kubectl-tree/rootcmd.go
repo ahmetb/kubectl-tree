@@ -37,6 +37,7 @@ import (
 const (
 	allNamespacesFlag = "all-namespaces"
 	colorFlag         = "color"
+	labelSelectorFlag = "selector"
 )
 
 var cf *genericclioptions.ConfigFlags
@@ -76,6 +77,12 @@ func run(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+
+	labelSelector, err := command.Flags().GetString(labelSelectorFlag)
+	if err != nil {
+		return err
+	}
+
 	if colorArg == "always" {
 		color.NoColor = false
 	} else if colorArg == "never" {
@@ -149,7 +156,7 @@ func run(command *cobra.Command, args []string) error {
 	klog.V(5).Infof("target parent object: %#v", obj)
 
 	klog.V(2).Infof("querying all api objects")
-	apiObjects, err := getAllResources(dyn, apis.resources(), allNs)
+	apiObjects, err := getAllResources(dyn, apis.resources(), allNs, labelSelector)
 	if err != nil {
 		return fmt.Errorf("error while querying api objects: %w", err)
 	}
@@ -180,6 +187,7 @@ func init() {
 
 	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
 	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
+	rootCmd.Flags().StringP(labelSelectorFlag, "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2). Matching objects must satisfy all of the specified label constraints.")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
