@@ -37,6 +37,7 @@ import (
 const (
 	allNamespacesFlag = "all-namespaces"
 	colorFlag         = "color"
+	ignoreErrorsFlag  = "ignore-errors"
 )
 
 var cf *genericclioptions.ConfigFlags
@@ -70,6 +71,11 @@ func run(command *cobra.Command, args []string) error {
 	allNs, err := command.Flags().GetBool(allNamespacesFlag)
 	if err != nil {
 		allNs = false
+	}
+
+	ignoreErrors, err := command.Flags().GetBool(ignoreErrorsFlag)
+	if err != nil {
+		ignoreErrors = false
 	}
 
 	colorArg, err := command.Flags().GetString(colorFlag)
@@ -149,9 +155,9 @@ func run(command *cobra.Command, args []string) error {
 	klog.V(5).Infof("target parent object: %#v", obj)
 
 	klog.V(2).Infof("querying all api objects")
-	apiObjects, err := getAllResources(dyn, apis.resources(), allNs)
+	apiObjects, err := getAllResources(dyn, apis.resources(), allNs, ignoreErrors)
 	if err != nil {
-		return fmt.Errorf("error while querying api objects: %w", err)
+		return fmt.Errorf("error while querying api objects, use --ignore-errors to continue: %w", err)
 	}
 	klog.V(2).Infof("found total %d api objects", len(apiObjects))
 
@@ -180,6 +186,7 @@ func init() {
 
 	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
 	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
+	rootCmd.Flags().Bool(ignoreErrorsFlag, false, "continue on errors while querying API resources")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
