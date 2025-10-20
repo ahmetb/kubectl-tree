@@ -15,7 +15,7 @@ import (
 )
 
 // getAllResources finds all API objects in specified API resources in all namespaces (or non-namespaced).
-func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) ([]unstructured.Unstructured, error) {
+func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool, ignoreErrors bool) ([]unstructured.Unstructured, error) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var out []unstructured.Unstructured
@@ -38,7 +38,9 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 				if errors.IsForbidden(err) {
 					// should not fail the overall process, but print an info message indicating the permission issue
 					klog.V(4).Infof("[query api] skipping forbidden resource: %s", a.GroupVersionResource())
-					klog.Infof("cannot query %s (forbidden), omitting from the tree", a.GroupVersionResource().GroupResource())
+					if !ignoreErrors {
+						klog.Infof("cannot query %s (forbidden), omitting from the tree", a.GroupVersionResource().GroupResource())
+					}
 				} else {
 					klog.V(4).Infof("[query api] error querying: %s, error=%v", a.GroupVersionResource(), err)
 					errResult = stderrors.Join(errResult, fmt.Errorf("failed to query the %s resources: %w", a.GroupVersionResource(), err))
@@ -56,6 +58,10 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 	wg.Wait()
 	klog.V(2).Infof("all goroutines have returned in %v", time.Since(start))
 	klog.V(2).Infof("query result: error=%v, objects=%d", errResult, len(out))
+	if ignoreErrors {
+		klog.V(2).Infof("ignoring errors, returning all objects")
+		return out, nil
+	}
 	return out, errResult
 }
 
