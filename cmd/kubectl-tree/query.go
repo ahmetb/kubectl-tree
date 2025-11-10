@@ -15,7 +15,7 @@ import (
 )
 
 // getAllResources finds all API objects in specified API resources in all namespaces (or non-namespaced).
-func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) ([]unstructured.Unstructured, error) {
+func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool, labelSelector string) ([]unstructured.Unstructured, error) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var out []unstructured.Unstructured
@@ -33,7 +33,7 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 		go func(a apiResource) {
 			defer wg.Done()
 			klog.V(4).Infof("[query api] start: %s", a.GroupVersionResource())
-			v, err := queryAPI(client, a, allNs)
+			v, err := queryAPI(client, a, allNs, labelSelector)
 			if err != nil {
 				if errors.IsForbidden(err) {
 					// should not fail the overall process, but print an info message indicating the permission issue
@@ -59,7 +59,7 @@ func getAllResources(client dynamic.Interface, apis []apiResource, allNs bool) (
 	return out, errResult
 }
 
-func queryAPI(client dynamic.Interface, api apiResource, allNs bool) ([]unstructured.Unstructured, error) {
+func queryAPI(client dynamic.Interface, api apiResource, allNs bool, labelSelector string) ([]unstructured.Unstructured, error) {
 	var out []unstructured.Unstructured
 
 	var next string
@@ -76,9 +76,11 @@ func queryAPI(client dynamic.Interface, api apiResource, allNs bool) ([]unstruct
 		} else {
 			intf = nintf
 		}
+
 		resp, err := intf.List(context.TODO(), metav1.ListOptions{
-			Limit:    250,
-			Continue: next,
+			Limit:         250,
+			Continue:      next,
+			LabelSelector: labelSelector,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("listing resources failed (%s): %w", api.GroupVersionResource(), err)
