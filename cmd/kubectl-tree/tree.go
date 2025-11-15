@@ -28,16 +28,16 @@ var (
 )
 
 // treeView prints object hierarchy to out stream.
-func treeView(out io.Writer, objs objectDirectory, obj unstructured.Unstructured) {
+func treeView(out io.Writer, objs objectDirectory, obj unstructured.Unstructured, conditionTypes []string) {
 	tbl := uitable.New()
 	tbl.Separator = "  "
 	tbl.AddRow("NAMESPACE", "NAME", "READY", "REASON", "STATUS", "AGE")
-	treeViewInner("", tbl, objs, obj)
+	treeViewInner("", tbl, objs, obj, conditionTypes)
 	fmt.Fprintln(color.Output, tbl)
 }
 
-func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj unstructured.Unstructured) {
-	ready, reason, kstatus := extractStatus(obj)
+func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj unstructured.Unstructured, conditionTypes []string) {
+	ready, reason, kstatus := extractStatus(obj, conditionTypes)
 
 	var readyColor *color.Color
 	switch ready {
@@ -90,7 +90,7 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 		default:
 			p = prefix + firstElemPrefix
 		}
-		treeViewInner(p, tbl, objs, child)
+		treeViewInner(p, tbl, objs, child, conditionTypes)
 	}
 }
 
