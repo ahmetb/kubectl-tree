@@ -11,7 +11,7 @@ import (
 type ReadyStatus string // True False Unknown or ""
 type Reason string
 
-func extractStatus(obj unstructured.Unstructured) (ReadyStatus, Reason, status.Status) {
+func extractStatus(obj unstructured.Unstructured, conditionTypes []string) (ReadyStatus, Reason, status.Status) {
 	jsonVal, _ := json.Marshal(obj.Object["status"])
 	klog.V(6).Infof("status for object=%s/%s: %s", obj.GetKind(), obj.GetName(), string(jsonVal))
 	result, err := status.Compute(&obj)
@@ -35,19 +35,22 @@ func extractStatus(obj unstructured.Unstructured) (ReadyStatus, Reason, status.S
 		return "", "", ""
 	}
 
-	for _, cond := range conditionsV {
-		condM, ok := cond.(map[string]interface{})
-		if !ok {
-			return "", "", ""
-		}
-		condType, ok := condM["type"].(string)
-		if !ok {
-			return "", "", ""
-		}
-		if condType == "Ready" {
-			condStatus, _ := condM["status"].(string)
-			condReason, _ := condM["reason"].(string)
-			return ReadyStatus(condStatus), Reason(condReason), status.Status(result.Status.String())
+	// Check each requested condition type in order
+	for _, targetCondType := range conditionTypes {
+		for _, cond := range conditionsV {
+			condM, ok := cond.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			condType, ok := condM["type"].(string)
+			if !ok {
+				continue
+			}
+			if condType == targetCondType {
+				condStatus, _ := condM["status"].(string)
+				condReason, _ := condM["reason"].(string)
+				return ReadyStatus(condStatus), Reason(condReason), status.Status(result.Status.String())
+			}
 		}
 	}
 	return "", "", ""
