@@ -30,10 +30,10 @@ import (
 	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -124,17 +124,27 @@ func run(command *cobra.Command, args []string) error {
 	klog.V(3).Info("completed querying APIs list")
 
 	// Use resource.Builder to resolve resource kind and name (kubectl-compatible)
-	builder := resource.NewBuilder(cf)
-	namespace := ""
-	if cf.Namespace != nil {
-		namespace = *cf.Namespace
+	clientCfg := cf.ToRawKubeConfigLoader()
+	kubeconfigNamespace, _, err := clientCfg.Namespace()
+	if err != nil {
+		return fmt.Errorf("failed to determine namespace from kubeconfig: %w", err)
 	}
 
-	result := builder.
-		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
-		NamespaceParam(namespace).
-		DefaultNamespace().
+	rb := resource.NewBuilder(cf)
+
+	namespace := ptr.Deref(cf.Namespace, "")
+	if namespace != "" {
+		rb = rb.NamespaceParam(namespace)
+	} else if kubeconfigNamespace != "" {
+		rb = rb.NamespaceParam(kubeconfigNamespace)
+	}
+	result := rb.
+		Unstructured().
+		AllNamespaces(allNs).
 		ResourceTypeOrNameArgs(true, args...).
+		Latest().
+		Flatten().
+		ContinueOnError().
 		Do()
 
 	infos, err := result.Infos()
@@ -147,7 +157,6 @@ func run(command *cobra.Command, args []string) error {
 	if len(infos) > 1 {
 		return fmt.Errorf("multiple resources found, specify a single resource")
 	}
-
 	info := infos[0]
 	gvr := info.Mapping.Resource
 	name := info.Name
@@ -192,7 +201,7 @@ func run(command *cobra.Command, args []string) error {
 		fmt.Println("No resources are owned by this object through ownerReferences.")
 		return nil
 	}
-	treeView(os.Stderr, objs, *obj, conditionTypes)
+	treeView(color.Output, objs, *obj, conditionTypes)
 	klog.V(2).Infof("done printing tree view")
 	return nil
 }
