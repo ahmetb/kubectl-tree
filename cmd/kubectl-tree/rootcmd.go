@@ -88,17 +88,11 @@ func run(command *cobra.Command, args []string) error {
 		return errors.Errorf("invalid value for --%s", colorFlag)
 	}
 
-	condTypesArg, err := command.Flags().GetString(conditionTypesFlag)
+	conditionTypes, err = command.Flags().GetStringSlice(conditionTypesFlag)
 	if err != nil {
 		return err
 	}
-	if condTypesArg != "" {
-		conditionTypes = strings.Split(condTypesArg, ",")
-		// Trim spaces from each condition type
-		for i := range conditionTypes {
-			conditionTypes[i] = strings.TrimSpace(conditionTypes[i])
-		}
-	} else {
+	if len(conditionTypes) == 0 {
 		// Default to "Ready" if not specified
 		conditionTypes = []string{"Ready"}
 	}
@@ -199,7 +193,7 @@ func init() {
 
 	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
 	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
-	rootCmd.Flags().String(conditionTypesFlag, "", "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
+	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
