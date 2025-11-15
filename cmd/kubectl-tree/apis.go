@@ -121,19 +121,3 @@ func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 	return out
 }
 
-func figureOutKindName(args []string) (string, string, error) {
-	if l := len(args); l == 0 || l > 2 {
-		return "", "", fmt.Errorf("accepts between 1 and 2 arg(s), received %d", l)
-	}
-	if len(args) == 2 {
-		return args[0], args[1], nil
-	}
-	seg := strings.Split(args[0], "/")
-	if len(seg) < 2 {
-		return "", "", fmt.Errorf("specify the kubernetes object in KIND NAME or KIND/NAME form")
-	}
-	if len(seg) > 2 {
-		return "", "", fmt.Errorf("arguments in KIND/NAME form may not have more than one slash")
-	}
-	return seg[0], seg[1], nil
-}

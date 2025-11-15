@@ -20,7 +20,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -28,8 +27,10 @@ import (
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -93,10 +94,6 @@ func run(command *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(conditionTypes) == 0 {
-		// Default to "Ready" if not specified
-		conditionTypes = []string{"Ready"}
-	}
 
 	restConfig, err := cf.ToRESTConfig()
 	if err != nil {
@@ -120,30 +117,45 @@ func run(command *cobra.Command, args []string) error {
 	}
 	klog.V(3).Info("completed querying APIs list")
 
-	kind, name, err := figureOutKindName(args)
-	if err != nil {
-		return err
+	// Use resource.Builder to resolve resource kind and name (kubectl-compatible)
+	builder := resource.NewBuilder(cf)
+	namespace := ""
+	if cf.Namespace != nil {
+		namespace = *cf.Namespace
 	}
-	klog.V(3).Infof("parsed kind=%v name=%v", kind, name)
 
-	var api apiResource
-	if k, ok := overrideType(kind, apis); ok {
-		klog.V(2).Infof("kind=%s override found: %s", kind, k.GroupVersionResource())
-		api = k
-	} else {
-		apiResults := apis.lookup(kind)
-		klog.V(5).Infof("kind matches=%v", apiResults)
-		if len(apiResults) == 0 {
-			return fmt.Errorf("could not find api kind %q", kind)
-		} else if len(apiResults) > 1 {
-			names := make([]string, 0, len(apiResults))
-			for _, a := range apiResults {
-				names = append(names, fullAPIName(a))
-			}
-			return fmt.Errorf("ambiguous kind %q. use one of these as the KIND disambiguate: [%s]", kind,
-				strings.Join(names, ", "))
-		}
-		api = apiResults[0]
+	result := builder.
+		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
+		NamespaceParam(namespace).
+		DefaultNamespace().
+		ResourceTypeOrNameArgs(true, args...).
+		Do()
+
+	infos, err := result.Infos()
+	if err != nil {
+		return fmt.Errorf("failed to resolve resource: %w", err)
+	}
+	if len(infos) == 0 {
+		return fmt.Errorf("no resources found")
+	}
+	if len(infos) > 1 {
+		return fmt.Errorf("multiple resources found, specify a single resource")
+	}
+
+	info := infos[0]
+	gvr := info.Mapping.Resource
+	name := info.Name
+	klog.V(3).Infof("resolved resource: gvr=%v name=%v", gvr, name)
+
+	// Convert GVR to apiResource for compatibility with existing code
+	// Check if resource is namespaced by comparing scope name
+	isNamespaced := info.Mapping.Scope.Name() == "namespace"
+	api := apiResource{
+		r: metav1.APIResource{
+			Name:       gvr.Resource,
+			Namespaced: isNamespaced,
+		},
+		gv: gvr.GroupVersion(),
 	}
 
 	ns := getNamespace()
@@ -151,13 +163,13 @@ func run(command *cobra.Command, args []string) error {
 
 	var ri dynamic.ResourceInterface
 	if api.r.Namespaced {
-		ri = dyn.Resource(api.GroupVersionResource()).Namespace(ns)
+		ri = dyn.Resource(gvr).Namespace(ns)
 	} else {
-		ri = dyn.Resource(api.GroupVersionResource())
+		ri = dyn.Resource(gvr)
 	}
 	obj, err := ri.Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get %s/%s: %w", kind, name, err)
+		return fmt.Errorf("failed to get %s/%s: %w", gvr.Resource, name, err)
 	}
 
 	klog.V(5).Infof("target parent object: %#v", obj)
@@ -194,7 +206,7 @@ func init() {
 
 	rootCmd.Flags().BoolP(allNamespacesFlag, "A", false, "query all objects in all API groups, both namespaced and non-namespaced")
 	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
-	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
+	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{"Ready"}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
