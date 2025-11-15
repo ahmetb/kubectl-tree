@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // combined authprovider import
 	"k8s.io/client-go/rest"
@@ -108,9 +109,9 @@ func run(command *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to construct dynamic client: %w", err)
 	}
-	dc, err := cf.ToDiscoveryClient()
+	dc, err := discovery.NewDiscoveryClientForConfig(restConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to construct discovery client: %w", err)
 	}
 
 	apis, err := findAPIs(dc)
