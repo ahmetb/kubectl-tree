@@ -9,7 +9,7 @@
 A kubectl plugin to explore ownership relationships between Kubernetes objects
 through `ownersReferences` on the objects.
 
-The [`kubectl lineage`](https://github.com/tohjustin/kube-lineage) plugin is very similar to `kubectl tree`, but it 
+The [`kubectl lineage`](https://github.com/tohjustin/kube-lineage) plugin is very similar to `kubectl tree`, but it
 [understands](https://github.com/tohjustin/kube-lineage#supported-relationships)
 logical relationships between some API objects without needing ownerReferences.
 
@@ -39,8 +39,16 @@ Example (Agones Fleet):
 By default, the plugin will only search "namespaced" objects in the same
 namespace as the specified object.
 
-You can use the `-A` or `--all-namespaces` flag to search namespaced and
-non-namespaced objects in all namespaces.
+- `-A`, `--all-namespaces`: Search namespaced and non-namespaced objects in all namespaces.
+
+- `-l`, `--selector`: Selector (label query) to filter on. Supports equality (`=`, `==`, `!=`), set-based (`in`, `notin`), and existence operators. Examples:
+  - `-l key1=value1,key2=value2` (equality)
+  - `-l "env in (prod,staging)"` (set-based)
+  - `-l "tier=frontend,env!=test"` (mixed)
+
+  This helps reduce workload and data volume when working with large clusters.
+
+- `--condition-types`: Comma-separated list of condition types to check (default: Ready). Example: `Ready,Processed,Scheduled`.
 
 ## Author
 
