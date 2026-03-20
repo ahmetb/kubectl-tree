@@ -41,6 +41,7 @@ const (
 	colorFlag          = "color"
 	conditionTypesFlag = "condition-types"
 	selectorFlag       = "selector"
+	apiGroupsFlag      = "api-groups"
 )
 
 var (
@@ -101,6 +102,11 @@ func run(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	apiGroups, err := command.Flags().GetStringSlice(apiGroupsFlag)
+	if err != nil {
+		return err
+	}
+
 	restConfig, err := cf.ToRESTConfig()
 	if err != nil {
 		return err
@@ -117,7 +123,7 @@ func run(command *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to construct discovery client: %w", err)
 	}
 
-	apis, err := findAPIs(dc)
+	apis, err := findAPIs(dc, apiGroups)
 	if err != nil {
 		return err
 	}
@@ -223,6 +229,7 @@ func init() {
 	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
 	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{"Ready"}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
 	rootCmd.Flags().StringP(selectorFlag, "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='. (e.g. -l key1=value1,key2=value2)")
+	rootCmd.Flags().StringSlice(apiGroupsFlag, nil, "Comma-separated list of API groups to include in the query, when not set all APIs are included (e.g. --api-groups=core,cluster.x-k8s.io,acme.cert-manager.io)")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
