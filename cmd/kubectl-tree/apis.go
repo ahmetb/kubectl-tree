@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -42,7 +43,7 @@ func fullAPIName(a apiResource) string {
 	return strings.Join([]string{sgv.Resource, sgv.Version, sgv.Group}, ".")
 }
 
-func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
+func findAPIs(client discovery.DiscoveryInterface, apiGroups []string) (*resourceMap, error) {
 	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
@@ -55,11 +56,23 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 		m: make(resourceNameLookup),
 	}
 	for _, group := range resList {
-		klog.V(5).Infof("iterating over group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
 		gv, err := schema.ParseGroupVersion(group.GroupVersion)
 		if err != nil {
 			return nil, fmt.Errorf("%q cannot be parsed into groupversion: %w", group.GroupVersion, err)
 		}
+
+		if len(apiGroups) != 0 {
+			if !slices.ContainsFunc(apiGroups, func(g string) bool {
+				if g == "core" || g == "" {
+					return gv.Group == ""
+				}
+				return gv.Group == g
+			}) {
+				klog.V(5).Infof("ignoring group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
+				continue
+			}
+		}
+		klog.V(5).Infof("iterating over group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
 
 		for _, apiRes := range group.APIResources {
 			klog.V(5).Infof("  api=%s namespaced=%v", apiRes.Name, apiRes.Namespaced)
@@ -84,12 +97,7 @@ func findAPIs(client discovery.DiscoveryInterface) (*resourceMap, error) {
 }
 
 func contains(v []string, s string) bool {
-	for _, vv := range v {
-		if vv == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(v, s)
 }
 
 // return all names that could refer to this APIResource
@@ -120,4 +128,3 @@ func apiNames(a metav1.APIResource, gv schema.GroupVersion) []string {
 	}
 	return out
 }
-
