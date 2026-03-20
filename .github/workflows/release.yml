@@ -12,7 +12,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v6
       with:
-        go-version: '1.24'
+        go-version-file: go.mod
     - name: GoReleaser
       uses: goreleaser/goreleaser-action@v6
       with:
@@ -22,4 +22,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Update new version in krew-index
       uses: rajatjindal/krew-release-bot@v0.0.51
-
