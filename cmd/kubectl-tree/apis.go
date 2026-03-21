@@ -49,8 +49,7 @@ func matchAny(patterns []string, match func(string) (bool, error)) bool {
 		return true
 	}
 
-	hasPositive := false
-	matchedPositive := false
+	var hasPositive, matchedPositive bool
 
 	for _, p := range patterns {
 		negated := strings.HasPrefix(p, "!")
@@ -66,13 +65,18 @@ func matchAny(patterns []string, match func(string) (bool, error)) bool {
 			continue
 		}
 		if negated && ok {
+			// if a netagive expression is matched we return immediately
 			return false
 		}
 		if !negated && ok {
+			// if a positive expression is matched,
+			// we take note of it but continue the loop, in case there are any netagive expressions that would match
 			matchedPositive = true
 		}
 	}
 
+	// if there are only negatives, allow by default unless a negative matched earlier
+	// if there are positives, require at least one positive match
 	return !hasPositive || matchedPositive
 }
 
