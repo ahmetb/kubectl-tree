@@ -236,7 +236,7 @@ func init() {
 	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{"Ready"}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
 	rootCmd.Flags().StringP(selectorFlag, "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='. (e.g. -l key1=value1,key2=value2)")
 	rootCmd.Flags().StringSlice(apiGroupsFlag, nil, "Comma-separated list of API groups to include in the query, when not set all APIs are included, globs are supported (e.g. --api-groups=core,cluster.x-k8s.io,*.cert-manager.io)")
-	rootCmd.Flags().StringSlice(resourcesFlag, nil, "Comma-separated list of resource types to include in the query, when not set all resources are included, globs are supported (e.g. --resources=deployments,pods)")
+	rootCmd.Flags().StringSlice(resourcesFlag, nil, "Comma-separated list of resource types to include in the query, when not set all resources are included, globs are supported (e.g. --resources=deployments,rs,pods)")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
