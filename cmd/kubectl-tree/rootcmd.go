@@ -42,6 +42,7 @@ const (
 	conditionTypesFlag = "condition-types"
 	selectorFlag       = "selector"
 	apiGroupsFlag      = "api-groups"
+	resourcesFlag      = "resources"
 )
 
 var (
@@ -107,6 +108,11 @@ func run(command *cobra.Command, args []string) error {
 		return err
 	}
 
+	resources, err := command.Flags().GetStringSlice(resourcesFlag)
+	if err != nil {
+		return err
+	}
+
 	restConfig, err := cf.ToRESTConfig()
 	if err != nil {
 		return err
@@ -123,7 +129,7 @@ func run(command *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to construct discovery client: %w", err)
 	}
 
-	apis, err := findAPIs(dc, apiGroups)
+	apis, err := findAPIs(dc, apiGroups, resources)
 	if err != nil {
 		return err
 	}
@@ -229,7 +235,8 @@ func init() {
 	rootCmd.Flags().StringP(colorFlag, "c", "auto", "Enable or disable color output. This can be 'always', 'never', or 'auto' (default = use color only if using tty). The flag is overridden by the NO_COLOR env variable if set.")
 	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{"Ready"}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
 	rootCmd.Flags().StringP(selectorFlag, "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='. (e.g. -l key1=value1,key2=value2)")
-	rootCmd.Flags().StringSlice(apiGroupsFlag, nil, "Comma-separated list of API groups to include in the query, when not set all APIs are included (e.g. --api-groups=core,cluster.x-k8s.io,acme.cert-manager.io)")
+	rootCmd.Flags().StringSlice(apiGroupsFlag, nil, "Comma-separated list of API groups to include in the query, when not set all APIs are included, globs are supported (e.g. --api-groups=core,cluster.x-k8s.io,*.cert-manager.io)")
+	rootCmd.Flags().StringSlice(resourcesFlag, nil, "Comma-separated list of resource types to include in the query, when not set all resources are included, globs are supported (e.g. --resources=deployments,pods)")
 
 	cf.AddFlags(rootCmd.Flags())
 	if err := flag.Set("logtostderr", "true"); err != nil {
