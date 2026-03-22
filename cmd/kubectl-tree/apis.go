@@ -82,9 +82,6 @@ func matchAny(patterns []string, match func(string) (bool, error)) bool {
 
 func matchGroups(patterns []string, g string) bool {
 	return matchAny(patterns, func(pattern string) (bool, error) {
-		if pattern == "*" {
-			return true, nil
-		}
 		if pattern == "core" || pattern == "" {
 			return g == "", nil
 		}

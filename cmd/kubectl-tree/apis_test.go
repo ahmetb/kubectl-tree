@@ -15,6 +15,8 @@ func TestMatchGroups(t *testing.T) {
 	}{
 		{name: "empty patterns", value: "apps", want: true},
 		{name: "positive match", patterns: []string{"apps"}, value: "apps", want: true},
+		{name: "positive glob match", patterns: []string{"app*"}, value: "apps", want: true},
+		{name: "positive glob miss", patterns: []string{"app*"}, value: "batch", want: false},
 		{name: "positive miss", patterns: []string{"apps"}, value: "batch", want: false},
 		{name: "negative match excluded", patterns: []string{"!batch"}, value: "batch", want: false},
 		{name: "negative miss included", patterns: []string{"!batch"}, value: "apps", want: true},
