@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -43,7 +44,75 @@ func fullAPIName(a apiResource) string {
 	return strings.Join([]string{sgv.Resource, sgv.Version, sgv.Group}, ".")
 }
 
-func findAPIs(client discovery.DiscoveryInterface, apiGroups []string) (*resourceMap, error) {
+func matchAny(patterns []string, match func(string) (bool, error)) bool {
+	if len(patterns) == 0 {
+		return true
+	}
+
+	var hasPositive, matchedPositive bool
+
+	for _, p := range patterns {
+		negated := strings.HasPrefix(p, "!")
+		if negated {
+			p = p[1:]
+		} else {
+			hasPositive = true
+		}
+
+		ok, err := match(p)
+		if err != nil {
+			klog.V(1).Infof("%s is an invalid pattern: %v", p, err)
+			continue
+		}
+		if negated && ok {
+			// if a netagive expression is matched we return immediately
+			return false
+		}
+		if !negated && ok {
+			// if a positive expression is matched,
+			// we take note of it but continue the loop, in case there are any netagive expressions that would match
+			matchedPositive = true
+		}
+	}
+
+	// if there are only negatives, allow by default unless a negative matched earlier
+	// if there are positives, require at least one positive match
+	return !hasPositive || matchedPositive
+}
+
+func matchGroups(patterns []string, g string) bool {
+	return matchAny(patterns, func(pattern string) (bool, error) {
+		if pattern == "core" || pattern == "" {
+			return g == "", nil
+		}
+
+		return filepath.Match(pattern, g)
+	})
+}
+
+func matchResources(patterns []string, apiRes metav1.APIResource) bool {
+	if apiRes.SingularName == "" {
+		apiRes.SingularName = strings.ToLower(apiRes.Kind)
+	}
+	names := []string{apiRes.Name, apiRes.SingularName, apiRes.Kind}
+	names = append(names, apiRes.ShortNames...)
+
+	return matchAny(patterns, func(pattern string) (bool, error) {
+		for _, name := range names {
+			ok, err := filepath.Match(pattern, name)
+			if err != nil {
+				return false, err
+			}
+			if ok {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	})
+}
+
+func findAPIs(client discovery.DiscoveryInterface, apiGroups, resources []string) (*resourceMap, error) {
 	start := time.Now()
 	resList, err := client.ServerPreferredResources()
 	if err != nil {
@@ -61,16 +130,9 @@ func findAPIs(client discovery.DiscoveryInterface, apiGroups []string) (*resourc
 			return nil, fmt.Errorf("%q cannot be parsed into groupversion: %w", group.GroupVersion, err)
 		}
 
-		if len(apiGroups) != 0 {
-			if !slices.ContainsFunc(apiGroups, func(g string) bool {
-				if g == "core" || g == "" {
-					return gv.Group == ""
-				}
-				return gv.Group == g
-			}) {
-				klog.V(5).Infof("ignoring group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
-				continue
-			}
+		if !matchGroups(apiGroups, gv.Group) {
+			klog.V(5).Infof("ignoring group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
+			continue
 		}
 		klog.V(5).Infof("iterating over group %s/%s (%d apis)", group.GroupVersion, group.APIVersion, len(group.APIResources))
 
@@ -78,6 +140,12 @@ func findAPIs(client discovery.DiscoveryInterface, apiGroups []string) (*resourc
 			klog.V(5).Infof("  api=%s namespaced=%v", apiRes.Name, apiRes.Namespaced)
 			if !contains(apiRes.Verbs, "list") {
 				klog.V(4).Infof("    api (%s) doesn't have required verb, skipping: %v", apiRes.Name, apiRes.Verbs)
+				continue
+			}
+			// NOTE: if a intermediate owner is excluded that will break the chain, even if the leaf is included
+			// for example --resources=deployments,pods will return nothing because replicasets are not included
+			if !matchResources(resources, apiRes) {
+				klog.V(5).Infof("    api (%s) doesn't match any resource pattern, skipping: %v", apiRes.Name, apiRes.Verbs)
 				continue
 			}
 			v := apiResource{
