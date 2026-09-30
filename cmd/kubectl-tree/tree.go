@@ -51,6 +51,14 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 	if ready == "" {
 		ready = "-"
 	}
+	reasonColor := readyColor
+	if obj.GetAPIVersion() == "v1" && obj.GetKind() == "Pod" && reason == "PodCompleted" {
+		phase, _, _ := unstructured.NestedString(obj.Object, "status", "phase")
+		if phase == "Succeeded" {
+			// Completed Pods are no longer ready, but completion is not a failure.
+			reasonColor = green
+		}
+	}
 
 	var statusColor *color.Color
 	switch kstatus {
@@ -78,7 +86,7 @@ func treeViewInner(prefix string, tbl *uitable.Table, objs objectDirectory, obj 
 		obj.GetKind(),
 		color.New(color.Bold).Sprint(obj.GetName())),
 		readyColor.Sprint(ready),
-		readyColor.Sprint(reason),
+		reasonColor.Sprint(reason),
 		statusColor.Sprint(kstatus),
 		age)
 	chs := objs.ownedBy(obj.GetUID())
