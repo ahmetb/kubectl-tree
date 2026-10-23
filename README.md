@@ -7,7 +7,7 @@
 # kubectl tree
 
 A kubectl plugin to explore ownership relationships between Kubernetes objects
-through `ownersReferences` on the objects.
+through `ownerReferences` on the objects.
 
 The [`kubectl lineage`](https://github.com/tohjustin/kube-lineage) plugin is very similar to `kubectl tree`, but it
 [understands](https://github.com/tohjustin/kube-lineage#supported-relationships)
