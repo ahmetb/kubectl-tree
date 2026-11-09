@@ -52,6 +52,8 @@ as the specified object.
 
   This helps reduce workload and data volume when working with large clusters.
 
+- `-o`, `--output`: Output format. Set to `json` to print the tree as nested JSON objects (each with a `children` list) instead of a table.
+
 - `--condition-types`: Comma-separated list of condition types to check. Default: `Ready`. Example: `Ready,Processed,Scheduled`.
 
 - `--api-groups`: Comma-separated list of API groups to include in the query. When not set, all API groups are included. Supports globs. Example: `--api-groups=core,*cluster.x-k8s.io,!addons.*,*.cert-manager.io`.

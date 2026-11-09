@@ -43,6 +43,7 @@ const (
 	selectorFlag       = "selector"
 	apiGroupsFlag      = "api-groups"
 	resourcesFlag      = "resources"
+	outputFlag         = "output"
 )
 
 var (
@@ -111,6 +112,14 @@ func run(command *cobra.Command, args []string) error {
 	resources, err := command.Flags().GetStringSlice(resourcesFlag)
 	if err != nil {
 		return err
+	}
+
+	output, err := command.Flags().GetString(outputFlag)
+	if err != nil {
+		return err
+	}
+	if output != "" && output != "json" {
+		return errors.Errorf("invalid value for --%s: only 'json' is supported", outputFlag)
 	}
 
 	restConfig, err := cf.ToRESTConfig()
@@ -209,6 +218,9 @@ func run(command *cobra.Command, args []string) error {
 	klog.V(2).Infof("found total %d api objects", len(apiObjects))
 
 	objs := newObjectDirectory(apiObjects)
+	if output == "json" {
+		return jsonView(os.Stdout, objs, *obj, conditionTypes)
+	}
 	if len(objs.ownership[obj.GetUID()]) == 0 {
 		fmt.Println("No resources are owned by this object through ownerReferences.")
 		return nil
@@ -236,6 +248,7 @@ func init() {
 	rootCmd.Flags().StringSlice(conditionTypesFlag, []string{"Ready"}, "Comma-separated list of condition types to check (default: Ready). Example: Ready,Processed,Scheduled")
 	rootCmd.Flags().StringP(selectorFlag, "l", "", "Selector (label query) to filter on, supports '=', '==', and '!='. (e.g. -l key1=value1,key2=value2)")
 	rootCmd.Flags().StringSlice(apiGroupsFlag, nil, "Comma-separated list of API groups to include in the query, when not set all APIs are included, globs are supported (e.g. --api-groups=core,cluster.x-k8s.io,*.cert-manager.io)")
+	rootCmd.Flags().StringP(outputFlag, "o", "", "Output format. Only 'json' is supported; by default a tree view is printed.")
 	rootCmd.Flags().StringSlice(resourcesFlag, nil, "Comma-separated list of resource types to include in the query, when not set all resources are included, globs are supported (e.g. --resources=deployments,rs,pods)")
 
 	cf.AddFlags(rootCmd.Flags())
